@@ -1,6 +1,6 @@
 package sdk
 
-import "gui/tray"
+import "github.com/package-register/gui/tray"
 
 // TrayProxy 托盘代理，暴露给用户的简洁API
 type TrayProxy struct {

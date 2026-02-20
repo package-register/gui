@@ -1,7 +1,7 @@
 package sdk
 
 import (
-	"gui/event"
+	"github.com/package-register/gui/event"
 	"image"
 	"image/png"
 	"os"

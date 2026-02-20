@@ -1,4 +1,4 @@
-module gui
+module github.com/package-register/gui
 
 go 1.24.11
 

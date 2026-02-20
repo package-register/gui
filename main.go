@@ -5,8 +5,8 @@ import (
 	"image"
 	"log"
 
-	"gui/event"
-	"gui/sdk"
+	"github.com/package-register/gui/event"
+	"github.com/package-register/gui/sdk"
 )
 
 func main() {

@@ -3,8 +3,8 @@ package sdk
 import (
 	"log"
 
-	"gui/event"
-	"gui/tray"
+	"github.com/package-register/gui/event"
+	"github.com/package-register/gui/tray"
 
 	w32 "github.com/gonutz/w32/v2"
 	"github.com/gonutz/wui/v2"
