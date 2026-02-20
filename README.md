@@ -15,6 +15,33 @@
 - 📸 **截图功能** - 支持隐藏窗口截图、图片显示、回调机制
 - 🖼️ **图片显示** - 内置图片显示组件，支持保存功能
 
+## 安装
+
+### 作为 Go 模块使用
+
+```bash
+# 在你的项目中安装
+go get github.com/package-register/gui
+```
+
+然后在代码中导入：
+
+```go
+import "github.com/package-register/gui/sdk"
+```
+
+**注意：** 如果你正在本仓库中开发，可以使用本地导入路径：
+```go
+import "gui/sdk"
+```
+
+### 克隆源码
+
+```bash
+git clone https://github.com/package-register/gui.git
+cd gui
+```
+
 ## 快速开始
 
 ### 基本用法
@@ -23,7 +50,7 @@
 package main
 
 import (
-    "gui/sdk"
+    "github.com/package-register/gui/sdk"
 )
 
 func main() {

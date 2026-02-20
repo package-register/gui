@@ -15,6 +15,33 @@ A Windows desktop application developed in Go with SDK-style API design, featuri
 - 📸 **Screenshot Functionality** - Hide window screenshot, image display, callback mechanism
 - 🖼️ **Image Display** - Built-in image display component with save support
 
+## Installation
+
+### As a Go Module
+
+```bash
+# Install in your project
+go get github.com/package-register/gui
+```
+
+Then import in your code:
+
+```go
+import "github.com/package-register/gui/sdk"
+```
+
+**Note:** For local development in this repository, you can use the local import path:
+```go
+import "gui/sdk"
+```
+
+### Clone Source Code
+
+```bash
+git clone https://github.com/package-register/gui.git
+cd gui
+```
+
 ## Quick Start
 
 ### Basic Usage
@@ -23,7 +50,7 @@ A Windows desktop application developed in Go with SDK-style API design, featuri
 package main
 
 import (
-    "gui/sdk"
+    "github.com/package-register/gui/sdk"
 )
 
 func main() {
