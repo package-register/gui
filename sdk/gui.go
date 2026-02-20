@@ -36,6 +36,7 @@ type App struct {
 	trayIcon    []byte
 	fontName    string
 	fontSize    int
+	hideConsole bool
 
 	// 注册的回调
 	tabSetups map[string]TabSetupFunc
@@ -91,6 +92,13 @@ func WithFont(name string, size int) Option {
 	return func(a *App) {
 		a.fontName = name
 		a.fontSize = size
+	}
+}
+
+// WithHideConsole 隐藏控制台窗口
+func WithHideConsole() Option {
+	return func(a *App) {
+		a.hideConsole = true
 	}
 }
 
@@ -185,6 +193,11 @@ func (app *App) Run() error {
 	app.window = wui.NewWindow()
 	app.window.SetTitle(app.title)
 	app.window.SetInnerBounds(100, 50, app.width, app.height)
+
+	// 设置控制台显示
+	if app.hideConsole {
+		app.window.HideConsoleOnStart()
+	}
 
 	// 设置字体
 	app.initFont()
