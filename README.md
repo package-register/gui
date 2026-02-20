@@ -185,16 +185,16 @@ gui/
 
 ## 应用截图
 
-![主界面](screenshots/main.png)
+![主界面](screenshots/home.png)
 *主界面 - 包含丰富的UI组件*
 
-![截图功能](screenshots/screenshot.png)
+![截图功能](screenshots/screen.png)
 *截图工具 - 支持隐藏窗口截图和图片显示*
 
 ![托盘菜单](screenshots/tray.png)
 *系统托盘菜单 - 支持窗口控制和快速切换*
 
-![Tab切换](screenshots/tabs.png)
+![Tab切换](screenshots/tab.png)
 *多Tab界面 - 灵活的页面组织*
 
 ## 许可证
