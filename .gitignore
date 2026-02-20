@@ -1,2 +1,4 @@
 .andy-code/
 .crush/
+tmp/
+*.exe

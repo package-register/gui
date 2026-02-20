@@ -27,6 +27,9 @@ type App struct {
 	visible bool
 	font    *wui.Font
 
+	// 键盘事件追踪
+	chatInputs map[uintptr]*ChatPanel // 使用句柄追踪聊天输入框
+
 	// 配置
 	title       string
 	width       int
@@ -48,6 +51,7 @@ type App struct {
 	tabs     map[string]*TabContext
 	tabBar   []*wui.Button
 	contentY int
+	theme    *Theme // 主题配置
 }
 
 // New 创建新的GUI应用
@@ -61,11 +65,15 @@ func New(opts ...Option) *App {
 		fontSize:  -14,
 		tabSetups: make(map[string]TabSetupFunc),
 		tabs:      make(map[string]*TabContext),
-		contentY:  40,
+		contentY:  50, // 调整以适应新的 Tab 栏高度
 	}
 	for _, opt := range opts {
 		opt(app)
 	}
+
+	// 初始化聊天输入框追踪
+	app.chatInputs = make(map[uintptr]*ChatPanel)
+
 	return app
 }
 
@@ -240,6 +248,9 @@ func (app *App) Run() error {
 		app.updateTabBar()
 	}
 
+	// 设置键盘事件处理
+	app.setupKeyboardHandler()
+
 	app.events.Emit(event.AppStart, nil)
 	app.visible = true
 
@@ -258,18 +269,25 @@ func (app *App) Run() error {
 // --- 内部方法 ---
 
 func (app *App) buildTabBar() {
-	x := 5
+	const (
+		tabWidth    = 120
+		tabHeight   = 36
+		tabSpacing  = 8
+		tabY        = 7
+	)
+
+	x := 12 // 左边距
 	for _, name := range app.tabOrder {
 		tabName := name
 		btn := wui.NewButton()
 		btn.SetText(tabName)
-		btn.SetBounds(x, 5, 80, 28)
+		btn.SetBounds(x, tabY, tabWidth, tabHeight)
 		btn.SetOnClick(func() {
 			app.SwitchTab(tabName)
 		})
 		app.window.Add(btn)
 		app.tabBar = append(app.tabBar, btn)
-		x += 85
+		x += tabWidth + tabSpacing
 	}
 }
 
@@ -321,4 +339,26 @@ func (app *App) initFont() {
 		app.font = f
 		app.window.SetFont(f)
 	}
+}
+
+// registerChatInput 注册聊天输入框（供 TabContext 调用）
+func (app *App) registerChatInput(input *wui.EditLine, chatPanel *ChatPanel) {
+	app.chatInputs[input.Handle()] = chatPanel
+}
+
+// setupKeyboardHandler 设置键盘事件处理
+func (app *App) setupKeyboardHandler() {
+	// VK_RETURN = 13 (Enter 键)
+	const VK_RETURN = 13
+
+	app.window.SetOnKeyDown(func(key int) {
+		if key == VK_RETURN {
+			// 获取当前聚焦的控件句柄
+			focusedHandle := uintptr(w32.GetFocus())
+			// 检查是否是已注册的聊天输入框
+			if chatPanel, ok := app.chatInputs[focusedHandle]; ok {
+				chatPanel.SendInput()
+			}
+		}
+	})
 }

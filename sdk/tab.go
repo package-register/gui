@@ -1,6 +1,7 @@
 package sdk
 
 import (
+	"fmt"
 	"github.com/package-register/gui/event"
 	"image"
 	"image/png"
@@ -312,4 +313,198 @@ func (t *TabContext) show() {
 
 func (t *TabContext) hide() {
 	t.panel.SetBounds(0, t.app.contentY, 0, 0)
+}
+
+// AddChatPanel 添加聊天面板
+func (t *TabContext) AddChatPanel(x, y, w, h int) *ChatPanel {
+	panel := wui.NewPanel()
+	panel.SetBounds(x, y, w, h)
+	panel.SetBorderStyle(wui.PanelBorderSunken) // 添加下沉边框，增加深度感
+
+	// 定义内边距
+	const padding = 12
+	const buttonHeight = 32
+	const inputHeight = 36
+
+	// 计算历史显示区域的高度（留出输入区域和按钮空间）
+	historyHeight := h - inputHeight - buttonHeight - padding*3
+
+	// 消息历史显示（只读）
+	historyEdit := wui.NewTextEdit()
+	historyEdit.SetBounds(padding, padding, w-padding*2, historyHeight)
+	historyEdit.SetReadOnly(true)
+	panel.Add(historyEdit)
+
+	// 输入框区域
+	inputY := padding + historyHeight + padding
+	inputWidth := w - buttonHeight - padding*3
+	inputEdit := wui.NewEditLine()
+	inputEdit.SetBounds(padding, inputY, inputWidth, inputHeight)
+	panel.Add(inputEdit)
+
+	// 发送按钮
+	btnX := padding + inputWidth + padding
+	sendBtn := wui.NewButton()
+	sendBtn.SetText("发送")
+	sendBtn.SetBounds(btnX, inputY, buttonHeight*2, inputHeight) // 稍微宽一点的按钮
+	panel.Add(sendBtn)
+
+	chatPanel := &ChatPanel{
+		panel:      panel,
+		history:    historyEdit,
+		input:      inputEdit,
+		sendBtn:    sendBtn,
+		aiService:  nil,
+		onSend:     nil,
+		onReceive:  nil,
+	}
+
+	// 设置发送按钮点击事件
+	sendBtn.SetOnClick(func() {
+		if chatPanel.onSend != nil {
+			chatPanel.onSend()
+		}
+	})
+
+	// 注册输入框到应用，用于回车键支持
+	t.app.registerChatInput(inputEdit, chatPanel)
+
+	t.panel.Add(panel)
+	return chatPanel
+}
+
+// ChatPanel 聊天面板组件
+type ChatPanel struct {
+	panel     *wui.Panel
+	history   *wui.TextEdit
+	input     *wui.EditLine
+	sendBtn   *wui.Button
+	aiService *AIService
+	onSend    func()
+	onReceive  func(message string)
+}
+
+// SetAIService 设置 AI 服务
+func (c *ChatPanel) SetAIService(aiService *AIService) {
+	c.aiService = aiService
+}
+
+// OnSend 设置发送回调
+func (c *ChatPanel) OnSend(handler func()) {
+	c.onSend = handler
+}
+
+// OnReceive 设置接收消息回调
+func (c *ChatPanel) OnReceive(handler func(message string)) {
+	c.onReceive = handler
+}
+
+// SendMessage 发送用户消息
+func (c *ChatPanel) SendMessage(message string) {
+	if message == "" {
+		return
+	}
+
+	// 显示用户消息
+	c.appendMessage("用户", message)
+
+	// 清空输入框
+	c.input.SetText("")
+
+	// 如果有 AI 服务，调用 AI
+	if c.aiService != nil {
+		go func() {
+			// 显示"正在生成"提示
+			c.appendSystemMessage("AI 正在生成回复...")
+
+			// 添加 AI 消息头
+			currentText := c.history.Text()
+			timestamp := getCurrentTime()
+			header := fmt.Sprintf("\n[%s] AI:\n", timestamp)
+			c.history.SetText(currentText + header)
+			aiStartPos := len(c.history.Text())
+
+			// 调用 AI 流式接口
+			err := c.aiService.ChatStream(message, func(chunk string) {
+				// 追加新的内容块
+				currentText := c.history.Text()
+				c.history.SetText(currentText + chunk)
+			})
+
+			if err != nil {
+				// 回滚到 AI 消息头之前，添加错误信息
+				fullText := c.history.Text()
+				c.history.SetText(fullText[:aiStartPos])
+				c.appendSystemMessage("❌ AI 调用失败: " + err.Error())
+				return
+			}
+
+			// 添加换行
+			currentText = c.history.Text()
+			c.history.SetText(currentText + "\n\n")
+
+			// 触发接收回调
+			finalText := c.history.Text()
+			if c.onReceive != nil {
+				c.onReceive(finalText)
+			}
+		}()
+	}
+}
+
+// SendInput 发送当前输入框的内容
+func (c *ChatPanel) SendInput() {
+	message := c.input.Text()
+	c.SendMessage(message)
+}
+
+// appendMessage 添加消息到历史记录
+func (c *ChatPanel) appendMessage(role, message string) {
+	currentText := c.history.Text()
+	timestamp := getCurrentTime()
+	newMessage := fmt.Sprintf("\n[%s] %s:\n%s\n\n", timestamp, role, message)
+	c.history.SetText(currentText + newMessage)
+
+	// 滚动到底部
+	// wui.TextEdit 可能没有滚动功能，这里先不处理
+}
+
+// appendSystemMessage 添加系统消息
+func (c *ChatPanel) appendSystemMessage(message string) {
+	currentText := c.history.Text()
+	timestamp := getCurrentTime()
+	newMessage := fmt.Sprintf("\n[%s] 系统: %s\n\n", timestamp, message)
+	_ = currentText // 使用变量避免警告，实际在下一行被使用
+	c.history.SetText(currentText + newMessage)
+}
+
+// GetHistory 获取聊天历史
+func (c *ChatPanel) GetHistory() string {
+	return c.history.Text()
+}
+
+// ClearHistory 清空聊天历史
+func (c *ChatPanel) ClearHistory() {
+	c.history.SetText("")
+}
+
+// Panel 获取聊天面板（用于添加到 Tab）
+func (c *ChatPanel) Panel() *wui.Panel {
+	return c.panel
+}
+
+// Input 获取输入框（用于高级操作）
+func (c *ChatPanel) Input() *wui.EditLine {
+	return c.input
+}
+
+// History 获取历史文本框（用于高级操作）
+func (c *ChatPanel) History() *wui.TextEdit {
+	return c.history
+}
+
+// getCurrentTime 获取当前时间字符串
+func getCurrentTime() string {
+	now := time.Now()
+	return now.Format("15:04:05")
 }

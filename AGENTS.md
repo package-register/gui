@@ -12,6 +12,7 @@
 - 多 Tab 界面
 - 系统托盘支持
 - 截图功能
+- **AI 集成**（基于 trpc-agent-go）
 
 ## 📁 关键目录结构
 
@@ -21,6 +22,7 @@ gui/
 ├── sdk/                 # SDK 层（公共 API）
 │   ├── gui.go           # App 类，管理应用生命周期
 │   ├── tab.go           # TabContext 类，UI 组件和截图
+│   ├── ai.go            # AIService 类，AI 对话服务
 │   └── tray_proxy.go    # TrayProxy，托盘代理
 ├── event/               # 事件系统
 │   └── event.go         # Event Bus，发布-订阅机制
@@ -101,6 +103,7 @@ app.OnEvent(event.TabSwitch, func(e event.Event) {
 - `AddSeparator(x, y, w)` - 添加分隔线
 - `AddImage(x, y, w, h)` - 添加图片显示
 - `AddScreenshotButton(text, x, y, w, h, hideWindow, callback)` - 添加截图按钮
+- `AddChatPanel(x, y, w, h) *ChatPanel` - 添加聊天面板
 
 ### Event Bus (event/event.go)
 
@@ -123,6 +126,61 @@ app.OnEvent(event.TabSwitch, func(e event.Event) {
 - `AddSeparator()` - 添加分隔符
 - `SetIcon(icon)` - 设置图标
 - `SetTooltip(tooltip)` - 设置提示
+
+### AIService (sdk/ai.go)
+
+**职责：** AI 对话服务封装
+
+**关键方法：**
+- `NewAIService(config AIServiceConfig) *AIService` - 创建 AI 服务
+- `Chat(message string) (string, error)` - 发送消息并获取回复（同步）
+- `ChatStream(message string, callback func(chunk string)) error` - 发送消息并使用流式回调接收回复
+- `Close() error` - 关闭 AI 服务
+
+**配置：**
+```go
+type AIServiceConfig struct {
+    APIKey  string  // API Key（必需）
+    BaseURL string  // API Base URL（如 OpenAI: https://api.openai.com/v1）
+    Model   string  // 模型名称（如 gpt-3.5-turbo）
+    UserID  string  // 用户 ID（可选，默认 default-user）
+}
+```
+
+**依赖：**
+- `trpc.group/trpc-go/trpc-agent-go` - LLM Agent 框架
+- `trpc.group/trpc-go/trpc-agent-go/model/openai` - OpenAI 兼容客户端
+- `trpc.group/trpc-go/trpc-agent-go/runner` - Runner 执行引擎
+- `trpc.group/trpc-go/trpc-agent-go/session/inmemory` - 内存会话管理
+
+### ChatPanel (sdk/tab.go)
+
+**职责：** 聊天 UI 组件
+
+**关键方法：**
+- `AddChatPanel(x, y, w, h int) *ChatPanel` - 添加聊天面板
+- `SetAIService(aiService *AIService)` - 设置 AI 服务
+- `SendMessage(message string)` - 发送用户消息（支持流式响应）
+- `SendInput()` - 发送当前输入框内容
+- `OnSend(handler func())` - 设置发送回调
+- `OnReceive(handler func(string))` - 设置接收消息回调
+- `GetHistory() string` - 获取聊天历史
+- `ClearHistory()` - 清空聊天历史
+
+**特性：**
+- 支持流式 AI 响应（实时显示）
+- 自动添加时间戳
+- 内置错误处理和 UI 反馈
+- 异步发送消息，不阻塞 UI
+
+**使用示例：**
+```go
+chatPanel := t.AddChatPanel(20, 60, 740, 480)
+chatPanel.SetAIService(aiService)
+chatPanel.OnSend(func() {
+    chatPanel.SendInput()
+})
+```
 
 ## 📝 修改代码指南
 
